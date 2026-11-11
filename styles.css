@@ -961,3 +961,71 @@ footer a {
     color: #a1a9b5;
   }
 }
+.exchange-ledger {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  text-align: left;
+}
+.exchange-stage {
+  padding: 12px;
+  text-align: left;
+  background: #fff;
+  border: 1px solid #e0e7f2;
+  border-radius: 10px;
+  min-width: 0;
+}
+.exchange-stage.active {
+  background: #f0f6ff;
+  border-color: #aacfff;
+}
+.exchange-stage > span {
+  display: block;
+  font-size: 10px;
+  color: #647d9d;
+  margin-bottom: 9px;
+}
+.exchange-stage strong {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-family: monospace;
+  font-weight: 500;
+}
+.exchange-stage i {
+  font-style: normal;
+  color: #007aff;
+}
+.exchange-stage i + i {
+  color: #a26aca;
+}
+.exchange-stage small,
+.exchange-result small {
+  display: block;
+  color: #8a9aaf;
+  font-size: 9px;
+  line-height: 1.8;
+  margin-top: 8px;
+}
+.exchange-result {
+  grid-column: 1/-1;
+  background: #edf4fd;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 10px;
+  color: #728cae;
+}
+.exchange-result strong {
+  font-size: 19px;
+  color: #2368b2;
+  margin-left: 15px;
+  font-family: monospace;
+}
+.status-flags {
+  grid-column: 1/-1;
+  font-size: 9px;
+  line-height: 1.9;
+  color: #8c9bb0;
+  padding: 4px;
+}

@@ -10,7 +10,7 @@
 
 让电路、数据流与时序同步发生，建立对 STM32 外设的直觉。
 
-[![Version](https://img.shields.io/badge/version-0.2.0--preview-007aff)](https://github.com/luozhang1024/Embedded-Visualization/releases)
+[![Version](https://img.shields.io/badge/version-0.3.0--preview-007aff)](https://github.com/luozhang1024/Embedded-Visualization/releases)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-007aff)](LICENSE)
 [![Validate](https://github.com/luozhang1024/Embedded-Visualization/actions/workflows/validate.yml/badge.svg)](https://github.com/luozhang1024/Embedded-Visualization/actions/workflows/validate.yml)
 [![Stars](https://img.shields.io/github/stars/luozhang1024/Embedded-Visualization?style=flat&color=007aff)](https://github.com/luozhang1024/Embedded-Visualization/stargazers)
@@ -24,7 +24,7 @@
 
 芯知将嵌入式外设的工作过程转化为可操作、可观察的学习体验。调整参数，逐步执行或拖动时间轴，即可同时观察原理图、信号电平、数据位和结果变化，并通过对应的 HAL 代码连接到实际开发。
 
-当前版本为 **v0.2.0 Preview**。版本徽章对应仓库源码版本；发布记录以 [Releases](https://github.com/luozhang1024/Embedded-Visualization/releases) 页面为准。
+当前版本为 **v0.3.0 Preview**。版本徽章对应仓库源码版本；发布记录以 [Releases](https://github.com/luozhang1024/Embedded-Visualization/releases) 页面为准。
 
 ## 核心特性
 
@@ -37,21 +37,21 @@
 
 ## 实验目录
 
-| 分类     | 模块  | 可观察内容                              | 可调整参数                    |
-| -------- | ----- | --------------------------------------- | ----------------------------- |
-| 基础外设 | GPIO  | 上下管开关、引脚高低电平、开漏释放      | 推挽 / 开漏、外部上拉         |
-| 通信协议 | USART | 起始位、D0–D7、停止位、逐位接收         | 数据字节、波特率              |
-| 通信协议 | I²C   | START、7 位地址、方向位、ACK/NACK、STOP | 从机地址、数据字节、地址应答  |
-| 通信协议 | SPI   | SCK / MOSI / NSS、采样沿、MSB first     | 数据字节、四种 CPOL/CPHA 模式 |
-| 模拟采集 | ADC   | 输入电压、量化等级、转换结果与 EOC      | 0–3.3 V 输入、8 / 10 / 12 位  |
-| 系统协同 | DMA   | 外设请求、内存写入、剩余传输数          | 传输长度、内存地址递增        |
+| 分类     | 模块  | 可观察内容                                    | 可调整参数                                      |
+| -------- | ----- | --------------------------------------------- | ----------------------------------------------- |
+| 基础外设 | GPIO  | 上下管开关、引脚高低电平、开漏释放            | 推挽 / 开漏、外部上拉                           |
+| 通信协议 | USART | 起始位、D0–D7、停止位、逐位接收               | 数据字节、波特率                                |
+| 通信协议 | I²C   | START、7 位地址、方向位、ACK/NACK、STOP       | 从机地址、数据字节、地址应答                    |
+| 通信协议 | SPI   | STM32 ↔ nRF24L01 全双工、收发移位与寄存器读取 | STATUS / CONFIG / NOP、占位字节；另保留四种模式 |
+| 模拟采集 | ADC   | 输入电压、量化等级、转换结果与 EOC            | 0–3.3 V 输入、8 / 10 / 12 位                    |
+| 系统协同 | DMA   | 外设请求、内存写入、剩余传输数                | 传输长度、内存地址递增                          |
 
 ### 推荐探索
 
 1. **GPIO**：选择开漏并移除上拉，定位到“写 1”，观察引脚为何处于高阻态。
 2. **USART**：分别发送 `1` 与 `128`，比较 D0 与 D7 的位置，理解低位先传。
 3. **I²C**：模拟地址 NACK，确认主机直接结束事务，不再发送数据字节。
-4. **SPI**：保持数据不变，比较四种模式的时钟空闲电平和采样标记。
+4. **SPI**：先读 STATUS，再读 CONFIG，比较命令与数据阶段的双向返回；把占位字节从 `0xFF` 改为 `0x00`，观察读回数据是否改变。切换“基础 SPI”可继续探索四种时钟模式。
 5. **ADC**：缓慢改变输入电压，比较不同分辨率下的量化结果与 LSB 大小。
 6. **DMA**：关闭内存地址递增，观察 `buffer[0]` 被反复覆盖。
 
@@ -94,6 +94,7 @@ Embedded-Visualization/
 ├── styles.css             # 设计样式与响应式布局
 ├── app.js                 # 外设模型、目录及交互控制
 ├── scenes.js              # 各外设专属 SVG 场景
+├── nrf.js                 # nRF24L01 全双工事务模型与场景
 ├── tests/                 # 原理模型与 DOM 交互测试
 ├── docs/                  # 项目展示资源
 ├── .github/workflows/     # 自动验证
@@ -108,7 +109,7 @@ Embedded-Visualization/
 - **GPIO**：输出管为功能开关示意；灯光为高阻逻辑指示，不计算真实 LED 负载或上拉电阻的驱动能力。
 - **USART**：仅演示异步发送的 8N1 格式，低位先传，不模拟接收过采样或帧错误。
 - **I²C**：演示 7 位寻址、写方向和单字节写入；ACK 参数仅模拟地址应答，不模拟仲裁、时钟拉伸或读事务。
-- **SPI**：演示 8 位 MSB first 主机发送与四种模式，不展示 MISO 接收和具体器件的建立 / 保持时间。
+- **SPI**：基础场景保留 8 位 MSB first 发送与四种模式；nRF24L01 场景固定 Mode 0，展示 SCK / MOSI / MISO / CSN、STATUS / CONFIG 单字节读取与 NOP。STATUS 为可选静态快照、CONFIG 固定为教学示例 `0x0B`；不模拟无线收发、IRQ 变化、寄存器写入、具体器件的建立 / 保持时间。详见 [nRF24L01 SPI 实验说明](docs/nrf24-spi.md)。
 - **ADC**：理想单端量化模型为 `min(2^N−1, floor(Vin / Vref × 2^N))`，`Vref = 3.3 V`。阶梯是概念示意，未逐格绘制全部量化等级；不模拟逐次逼近、噪声、偏移和采样保持电路。
 - **DMA**：演示外设到内存的单次、字节宽度传输，不模拟总线仲裁、FIFO、缓存一致性或循环模式。
 

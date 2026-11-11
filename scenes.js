@@ -58,6 +58,8 @@ const EmbeddedScenes = (() => {
       return `<span class="bit-cell ${i < completed ? "received" : ""} ${i === current ? "current" : ""}"><span>D${bit}</span><b>${(data >> bit) & 1}</b></span>`;
     }).join("");
   function render(id, p, m, position) {
+    if (id === "spi" && p.device === "nrf")
+      return NRF24Lab.render(p, m, position);
     const f = m.frames[position];
     let body = "",
       readout = "",

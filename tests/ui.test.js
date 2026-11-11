@@ -20,7 +20,7 @@ function setup(t) {
   dom.window.clearInterval = () => {
     interval = undefined;
   };
-  for (const file of ["scenes.js", "app.js"])
+  for (const file of ["nrf.js", "scenes.js", "app.js"])
     vm.runInContext(
       fs.readFileSync(path.join(root, file), "utf8"),
       dom.getInternalVMContext(),
@@ -148,4 +148,36 @@ test("invalid numeric input is restored while ADC full scale stays finite", (t) 
   input("timeline", $("timeline").max);
   assert.equal($("result-value").textContent, "4095 / 4095");
   assert.match($("scene-readout").textContent, /4095/);
+});
+
+test("nRF transaction stages, dummy comparison, NOP and generic SPI stay in sync", (t) => {
+  const { $, click, input } = setup(t);
+  click('[data-module="spi"]');
+  assert.match($("diagram").textContent, /STM32/);
+  assert.match($("diagram").textContent, /nRF24L01/);
+  assert.equal($("param-mode").closest("[data-control-scope]").hidden, true);
+  click('[data-seek="17"]');
+  assert.equal($("timeline").value, "17");
+  assert.equal($("result-value").textContent, "等待交换");
+  assert.match($("scene-readout").textContent, /MISO ← 0x2E/);
+  input("param-operation", "config");
+  input("timeline", $("timeline").max);
+  assert.equal($("result-value").textContent, "0x0B");
+  input("param-dummy", "0");
+  input("timeline", $("timeline").max);
+  assert.equal($("result-value").textContent, "0x0B");
+  input("param-operation", "nop");
+  assert.equal($("param-dummy").closest("[data-control-scope]").hidden, true);
+  assert.equal($("timeline").max, "18");
+  input("timeline", 18);
+  assert.equal($("result-value").textContent, "0x2E");
+  input("param-device", "generic");
+  assert.equal($("param-mode").closest("[data-control-scope]").hidden, false);
+  assert.equal($("param-status").closest("[data-control-scope]").hidden, true);
+  input("param-mode", "3");
+  assert.match($("diagram").textContent, /Mode 3/);
+  input("param-device", "nrf");
+  assert.match($("time-note").textContent, /Mode 0/);
+  input("param-operation", "status");
+  assert.equal($("param-dummy").closest("[data-control-scope]").hidden, false);
 });

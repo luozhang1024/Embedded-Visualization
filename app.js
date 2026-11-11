@@ -97,10 +97,53 @@ const MODULES = {
     title: "SPI",
     name: "串行外设接口",
     icon: "≋",
-    tag: "同步串行 · MSB first",
+    tag: "全双工 · STM32 ↔ nRF24L01",
     description:
-      "时钟由主机产生。改变 CPOL / CPHA，观察时钟空闲电平和数据采样沿。",
+      "STM32 发命令的同时，nRF24L01 也在返回数据。观察读寄存器时的命令、占位字节与双向移位。",
     controls: [
+      {
+        key: "device",
+        label: "实验场景",
+        options: [
+          ["nrf", "STM32 ↔ nRF24L01"],
+          ["generic", "基础 SPI · 四种模式"],
+        ],
+        value: "nrf",
+      },
+      {
+        key: "operation",
+        label: "驱动调用",
+        options: [
+          ["status", "Read_Reg(STATUS)"],
+          ["config", "Read_Reg(CONFIG)"],
+          ["nop", "NOP · 只读取 STATUS"],
+        ],
+        value: "status",
+        scope: "nrf",
+      },
+      {
+        key: "status",
+        label: "模拟 STATUS 快照",
+        options: [
+          ["14", "0x0E · 无中断 / RX FIFO 空"],
+          ["46", "0x2E · TX_DS 置位"],
+          ["78", "0x4E · RX_DR 置位（FIFO 已空）"],
+        ],
+        value: "46",
+        scope: "nrf",
+        help: "教学快照；事务期间保持不变，不模拟无线收发。",
+      },
+      {
+        key: "dummy",
+        label: "数据阶段的占位字节",
+        options: [
+          ["255", "0xFF · 常用占位"],
+          ["0", "0x00 · 对比占位"],
+        ],
+        value: "255",
+        scope: "nrf",
+        help: "读取寄存器的数据阶段忽略 MOSI 内容；发送仍用于产生 8 个时钟。",
+      },
       {
         key: "byte",
         label: "发送数据（十进制）",
@@ -108,6 +151,7 @@ const MODULES = {
         min: 0,
         max: 255,
         value: 165,
+        scope: "generic",
       },
       {
         key: "mode",
@@ -119,6 +163,7 @@ const MODULES = {
           ["3", "Mode 3 · CPOL=1, CPHA=1"],
         ],
         value: "0",
+        scope: "generic",
       },
     ],
   },
@@ -186,6 +231,13 @@ const hex = (n) => "0x" + Number(n).toString(16).toUpperCase().padStart(2, "0");
 const bits = (n, lsb = false) =>
   Array.from({ length: 8 }, (_, i) => (n >> (lsb ? i : 7 - i)) & 1);
 function buildModel(id, p) {
+  if (id === "spi" && p.device === "nrf") {
+    const nrf =
+      typeof module !== "undefined" && module.exports
+        ? require("./nrf.js")
+        : NRF24Lab;
+    return nrf.buildModel(p);
+  }
   const frames = [];
   const add = (label, text, values, extra = {}) =>
     frames.push({ label, text, values, ...extra });
@@ -423,12 +475,19 @@ if (typeof document !== "undefined") {
     gpio: ["basic", "#007aff", "#edf4ff", "推挽 / 开漏 / 电平"],
     usart: ["bus", "#af52de", "#f6edfc", "串口 / 逐位发送"],
     i2c: ["bus", "#ff9500", "#fff4e5", "寻址 / 应答 / 总线"],
-    spi: ["bus", "#30a58b", "#eaf7f2", "时钟 / 采样沿"],
+    spi: ["bus", "#30a58b", "#eaf7f2", "全双工 / nRF24L01"],
     adc: ["analog", "#ff617b", "#fff0f3", "采样 / 量化 / 编码"],
     dma: ["system", "#5856d6", "#f0efff", "数据搬运 / 缓冲区"],
   };
   let category = "all";
-  const aliases = { gpio: "引脚 io", usart: "uart 串口 8n1", i2c: "iic i2c i²c", spi: "串行", adc: "模数转换 电压", dma: "内存 搬运" };
+  const aliases = {
+    gpio: "引脚 io",
+    usart: "uart 串口 8n1",
+    i2c: "iic i2c i²c",
+    spi: "串行 nrf24l01 status config 全双工",
+    adc: "模数转换 电压",
+    dma: "内存 搬运",
+  };
   $("categories").innerHTML = categories
     .map(
       (c) =>
@@ -484,7 +543,18 @@ if (typeof document !== "undefined") {
   function refreshModel() {
     stop();
     position = 0;
+    document.querySelectorAll("[data-control-scope]").forEach((el) => {
+      el.hidden = el.dataset.controlScope !== params.device;
+    });
     model = buildModel(selected, params);
+    if (selected === "spi" && params.device === "nrf")
+      $("param-dummy").closest("[data-control-scope]").hidden =
+        params.operation === "nop";
+    if (selected === "spi")
+      $("module-tag").textContent =
+        params.device === "nrf"
+          ? "全双工 · STM32 ↔ nRF24L01"
+          : "基础 SPI · 四种模式";
     [
       "resultLabel",
       "result",
@@ -525,7 +595,7 @@ if (typeof document !== "undefined") {
     $("controls").innerHTML = m.controls
       .map(
         (c) =>
-          `<div><label class="control-label" for="param-${c.key}">${c.label}${c.type === "range" ? `<output id="output-${c.key}">${c.value}${c.unit || ""}</output>` : ""}</label>${c.options ? `<select id="param-${c.key}" data-key="${c.key}">${c.options.map(([value, label]) => `<option value="${value}" ${String(c.value) === value ? "selected" : ""}>${label}</option>`).join("")}</select>` : `<input id="param-${c.key}" data-key="${c.key}" type="${c.type}" min="${c.min}" max="${c.max}" step="${c.step || 1}" value="${c.value}">`}${c.help ? `<p class="control-help">${c.help}</p>` : ""}</div>`,
+          `<div ${c.scope ? `data-control-scope="${c.scope}"` : ""}><label class="control-label" for="param-${c.key}">${c.label}${c.type === "range" ? `<output id="output-${c.key}">${c.value}${c.unit || ""}</output>` : ""}</label>${c.options ? `<select id="param-${c.key}" data-key="${c.key}">${c.options.map(([value, label]) => `<option value="${value}" ${String(c.value) === value ? "selected" : ""}>${label}</option>`).join("")}</select>` : `<input id="param-${c.key}" data-key="${c.key}" type="${c.type}" min="${c.min}" max="${c.max}" step="${c.step || 1}" value="${c.value}">`}${c.help ? `<p class="control-help">${c.help}</p>` : ""}</div>`,
       )
       .join("");
     refreshModel();
@@ -586,6 +656,16 @@ if (typeof document !== "undefined") {
     );
     render();
   });
+  $("scene-readout").addEventListener("click", (e) => {
+    const button = e.target.closest("[data-seek]");
+    if (!button) return;
+    stop();
+    position = Math.max(
+      0,
+      Math.min(model.frames.length - 1, Number(button.dataset.seek)),
+    );
+    render();
+  });
   function play() {
     if (timer) {
       stop();
@@ -616,19 +696,25 @@ if (typeof document !== "undefined") {
     channels.forEach((channel, row) => {
       const high = 12 + row * 49,
         low = high + 24;
+      const signalColor = model.transfer
+        ? ["#899bb0", "#007aff", "#a26aca", "#9aafc4"][row]
+        : "#15977f";
       svg += `<text x="3" y="${high + 16}" font-size="10" fill="#7d8b9b">${channel}</text>`;
       frames.forEach((frame, i) => {
         const value = frame.values[row],
           previous = frames[Math.max(0, i - 1)].values[row],
           y = value === null ? high + 12 : value ? high : low;
         const prevY = previous === null ? high + 12 : previous ? high : low;
-        svg += `<path d="M${left + i * dx} ${i ? prevY : y}V${y}H${left + (i + 1) * dx}" fill="none" stroke="${value === null ? "#c49b50" : "#15977f"}" stroke-width="2" ${value === null ? 'stroke-dasharray="4 3"' : ""}/>`;
+        svg += `<path d="M${left + i * dx} ${i ? prevY : y}V${y}H${left + (i + 1) * dx}" fill="none" stroke="${value === null ? "#c49b50" : signalColor}" stroke-width="2" ${value === null ? 'stroke-dasharray="4 3"' : ""}/>`;
         if (frame.sample && row === 0)
           svg += `<circle cx="${left + i * dx}" cy="${y}" r="3.2" fill="#e4a841"/>`;
       });
     });
-    const labels =
-      frames.length <= 20
+    const labels = model.transfer
+      ? model.transfer.nop
+        ? [0, 1, 17, 18]
+        : [0, 1, 17, 18, 33, 34]
+      : frames.length <= 20
         ? frames.map((_, i) => i)
         : [0, 1, 18, 19, frames.length - 1];
     labels.forEach((i) => {
