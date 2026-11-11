@@ -452,6 +452,18 @@ if (typeof document !== "undefined") {
     model,
     position = 0,
     timer = null;
+  let storyView = "story",
+    storyTarget = null,
+    showStoryDetails = false;
+  const isNrf = () => selected === "spi" && params.device === "nrf";
+  function updateStoryClock() {
+    $("story-clock").textContent = timer
+      ? "时钟正在推进：两端同时接收。到下一幕会自动停下。"
+      : "时钟已暂停：两端不会自行接收下一位。点击“敲一下时钟”观察一次交换。";
+    $("story-next").disabled =
+      timer !== null || (model && position === model.frames.length - 1);
+    $("story-pause").disabled = timer === null;
+  }
   const escapeHTML = (value) =>
     String(value).replace(
       /[&<>"']/g,
@@ -539,6 +551,8 @@ if (typeof document !== "undefined") {
     clearInterval(timer);
     timer = null;
     $("play").textContent = "▶ 播放演示";
+    storyTarget = null;
+    updateStoryClock();
   }
   function refreshModel() {
     stop();
@@ -632,7 +646,11 @@ if (typeof document !== "undefined") {
       position++;
       render();
     }
-    if (position === model.frames.length - 1) stop();
+    if (
+      position === model.frames.length - 1 ||
+      (storyTarget !== null && position >= storyTarget)
+    )
+      stop();
   }
   $("step").addEventListener("click", () => {
     stop();
@@ -677,13 +695,76 @@ if (typeof document !== "undefined") {
     }
     $("play").textContent = "Ⅱ 暂停";
     timer = setInterval(advance, +$("speed").value);
+    updateStoryClock();
   }
+  function setStoryView(view) {
+    stop();
+    storyView = view;
+    render();
+  }
+  $("view-story").addEventListener("click", () => setStoryView("story"));
+  $("view-signals").addEventListener("click", () => setStoryView("signals"));
+  $("story-next").addEventListener("click", () => {
+    if (!isNrf()) return;
+    stop();
+    const next = SPIStory.chapters(model).find((c) => c.at > position);
+    if (!next) return;
+    storyTarget = next.at;
+    $("play").textContent = "Ⅱ 暂停";
+    timer = setInterval(advance, +$("speed").value);
+    updateStoryClock();
+  });
+  $("story-back").addEventListener("click", () => {
+    if (!isNrf()) return;
+    stop();
+    const previous = SPIStory.chapters(model)
+      .filter((c) => c.at < position)
+      .at(-1);
+    position = previous ? previous.at : 0;
+    render();
+  });
+  $("story-pause").addEventListener("click", stop);
+  $("story-pulse").addEventListener("click", () => {
+    if (!isNrf() || position === 0) return;
+    stop();
+    const nextSample = model.frames.findIndex(
+      (f, i) => i > position && f.sample,
+    );
+    if (nextSample < 0) return;
+    position = nextSample;
+    render();
+  });
+  $("story-details").addEventListener("click", () => {
+    showStoryDetails = !showStoryDetails;
+    render();
+  });
+  $("story-stage").addEventListener("click", (e) => {
+    if (!isNrf()) return;
+    if (e.target.closest("#story-compare")) {
+      params.operation = "config";
+      $("param-operation").value = "config";
+      refreshModel();
+      return;
+    }
+    const button = e.target.closest("[data-story-seek]");
+    if (!button) return;
+    stop();
+    position = Number(button.dataset.storySeek);
+    render();
+  });
   $("play").addEventListener("click", play);
   $("speed").addEventListener("change", () => {
+    $("story-speed").value = $("speed").value;
     if (timer) {
+      const target = storyTarget;
       stop();
       play();
+      storyTarget = target;
     }
+  });
+  $("story-speed").addEventListener("change", () => {
+    $("speed").value = $("story-speed").value;
+    $("speed").dispatchEvent(new Event("change"));
   });
   function renderWave() {
     const { frames, channels } = model,
@@ -712,8 +793,8 @@ if (typeof document !== "undefined") {
     });
     const labels = model.transfer
       ? model.transfer.nop
-        ? [0, 1, 17, 18]
-        : [0, 1, 17, 18, 33, 34]
+        ? [0, 1, 16, 18]
+        : [0, 1, 16, 17, 32, 34]
       : frames.length <= 20
         ? frames.map((_, i) => i)
         : [0, 1, 18, 19, frames.length - 1];
@@ -738,6 +819,40 @@ if (typeof document !== "undefined") {
     $("timeline-value").textContent = `${position + 1}/${model.frames.length}`;
     renderWave();
     renderDiagram();
+    const nrf = isNrf(),
+      story = nrf && storyView === "story";
+    $("spi-learning").hidden = !nrf;
+    document
+      .querySelector(".visualization")
+      .classList.toggle("story-mode", story);
+    document.body.classList.toggle("spi-story-mode", story);
+    $("story-stage").hidden = !story;
+    document.querySelector(".story-transport").hidden = !story;
+    $("story-clock").hidden = !story;
+    $("story-details").hidden = !story;
+    $("signal-details").hidden = story && !showStoryDetails;
+    $("view-story").setAttribute("aria-pressed", String(storyView === "story"));
+    $("view-signals").setAttribute(
+      "aria-pressed",
+      String(storyView === "signals"),
+    );
+    if (story) {
+      $("story-stage").innerHTML = SPIStory.render(model, position);
+      $("story-next").disabled =
+        position === model.frames.length - 1 || timer !== null;
+      $("story-back").disabled = position === 0;
+      $("story-pulse").disabled =
+        position === 0 ||
+        !model.frames.some((f, i) => i > position && f.sample);
+      $("story-details").textContent = showStoryDetails
+        ? "收起同步时序 ↑"
+        : "展开同步时序 ↓";
+      $("story-details").setAttribute(
+        "aria-expanded",
+        String(showStoryDetails),
+      );
+    }
+    updateStoryClock();
   }
   function renderDiagram() {
     const scene = EmbeddedScenes.render(selected, params, model, position);

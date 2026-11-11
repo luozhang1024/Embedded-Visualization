@@ -20,7 +20,7 @@ function setup(t) {
   dom.window.clearInterval = () => {
     interval = undefined;
   };
-  for (const file of ["nrf.js", "scenes.js", "app.js"])
+  for (const file of ["nrf.js", "spi-story.js", "scenes.js", "app.js"])
     vm.runInContext(
       fs.readFileSync(path.join(root, file), "utf8"),
       dom.getInternalVMContext(),
@@ -156,8 +156,8 @@ test("nRF transaction stages, dummy comparison, NOP and generic SPI stay in sync
   assert.match($("diagram").textContent, /STM32/);
   assert.match($("diagram").textContent, /nRF24L01/);
   assert.equal($("param-mode").closest("[data-control-scope]").hidden, true);
-  click('[data-seek="17"]');
-  assert.equal($("timeline").value, "17");
+  click('[data-seek="16"]');
+  assert.equal($("timeline").value, "16");
   assert.equal($("result-value").textContent, "等待交换");
   assert.match($("scene-readout").textContent, /MISO ← 0x2E/);
   input("param-operation", "config");
@@ -180,4 +180,90 @@ test("nRF transaction stages, dummy comparison, NOP and generic SPI stay in sync
   assert.match($("time-note").textContent, /Mode 0/);
   input("param-operation", "status");
   assert.equal($("param-dummy").closest("[data-control-scope]").hidden, false);
+});
+
+test("story chapters stop on byte boundaries and one clock fills both receive queues", (t) => {
+  const { $, click, tick, playing } = setup(t);
+  click('[data-module="spi"]');
+  assert.equal($("spi-learning").hidden, false);
+  assert.equal($("signal-details").hidden, true);
+  assert.equal($("view-story").getAttribute("aria-pressed"), "true");
+  assert.equal($("story-pulse").disabled, true);
+  click("#story-next");
+  tick();
+  assert.equal($("timeline").value, "1");
+  assert(!playing());
+  assert.equal($("story-next").disabled, false);
+  click("#story-pulse");
+  assert.equal($("timeline").value, "2");
+  assert.equal(
+    $("story-stage").querySelectorAll(".queue-bit.arrived").length,
+    2,
+  );
+  click("#story-next");
+  for (let i = 0; i < 30; i++) tick();
+  assert(!playing());
+  assert.equal($("timeline").value, "16");
+  assert.equal($("story-next").disabled, false);
+  assert.match($("story-stage").textContent, /第一轮完成/);
+  assert.equal(
+    $("story-stage").querySelectorAll(".queue-bit.arrived").length,
+    16,
+  );
+  click("#story-next");
+  tick();
+  click("#story-pause");
+  const paused = $("timeline").value;
+  for (let i = 0; i < 10; i++) tick();
+  assert.equal($("timeline").value, paused);
+  assert.match($("story-clock").textContent, /时钟已暂停/);
+  click("#story-next");
+  for (let i = 0; i < 40; i++) tick();
+  assert.equal($("timeline").value, "32");
+  assert(!playing());
+  assert.equal($("story-pulse").disabled, true);
+  assert.match($("story-stage").textContent, /尚未返回/);
+  click("#story-next");
+  for (let i = 0; i < 5; i++) tick();
+  assert.equal($("timeline").value, "34");
+  assert.equal($("result-value").textContent, "0x2E");
+  assert.equal($("story-next").disabled, true);
+});
+
+test("story speed change keeps its stop point, detail view keeps position and NOP skips data", (t) => {
+  const { $, click, input, tick } = setup(t);
+  click('[data-module="spi"]');
+  click('[data-story-seek="1"]');
+  click("#story-next");
+  tick();
+  input("story-speed", "200", "change");
+  assert.equal($("speed").value, "200");
+  for (let i = 0; i < 30; i++) tick();
+  assert.equal($("timeline").value, "16");
+  click("#story-details");
+  assert.equal($("signal-details").hidden, false);
+  assert.equal($("story-details").getAttribute("aria-expanded"), "true");
+  click("#view-signals");
+  assert.equal($("story-stage").hidden, true);
+  assert.equal($("timeline").value, "16");
+  click("#view-story");
+  assert.equal($("timeline").value, "16");
+  click("#story-compare");
+  assert.equal($("param-operation").value, "config");
+  assert.equal($("timeline").value, "0");
+  click('[data-story-seek="34"]');
+  assert.equal($("result-value").textContent, "0x0B");
+  input("param-operation", "nop");
+  assert.equal(
+    $("story-stage").querySelectorAll("[data-story-seek]").length,
+    4,
+  );
+  assert(!$("story-stage").querySelector('[data-story-seek="32"]'));
+  click('[data-story-seek="16"]');
+  click("#story-next");
+  for (let i = 0; i < 10; i++) tick();
+  assert.equal($("timeline").value, "18");
+  click('[data-module="gpio"]');
+  assert.equal($("spi-learning").hidden, true);
+  assert.equal($("signal-details").hidden, false);
 });

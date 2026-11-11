@@ -10,7 +10,7 @@
 
 让电路、数据流与时序同步发生，建立对 STM32 外设的直觉。
 
-[![Version](https://img.shields.io/badge/version-0.3.0--preview-007aff)](https://github.com/luozhang1024/Embedded-Visualization/releases)
+[![Version](https://img.shields.io/badge/version-0.4.0--preview-007aff)](https://github.com/luozhang1024/Embedded-Visualization/releases)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-007aff)](LICENSE)
 [![Validate](https://github.com/luozhang1024/Embedded-Visualization/actions/workflows/validate.yml/badge.svg)](https://github.com/luozhang1024/Embedded-Visualization/actions/workflows/validate.yml)
 [![Stars](https://img.shields.io/github/stars/luozhang1024/Embedded-Visualization?style=flat&color=007aff)](https://github.com/luozhang1024/Embedded-Visualization/stargazers)
@@ -24,10 +24,11 @@
 
 芯知将嵌入式外设的工作过程转化为可操作、可观察的学习体验。调整参数，逐步执行或拖动时间轴，即可同时观察原理图、信号电平、数据位和结果变化，并通过对应的 HAL 代码连接到实际开发。
 
-当前版本为 **v0.3.0 Preview**。版本徽章对应仓库源码版本；发布记录以 [Releases](https://github.com/luozhang1024/Embedded-Visualization/releases) 页面为准。
+当前版本为 **v0.4.0 Preview**。版本徽章对应仓库源码版本；发布记录以 [Releases](https://github.com/luozhang1024/Embedded-Visualization/releases) 页面为准。
 
 ## 核心特性
 
+- **循序故事演示**：SPI 默认从五幕故事开始，按命令、数据与返回逐幕播放并自动停下；双向位队列、接收盒和手动时钟帮助分清“收全字节”与“函数返回”。理解后可切换真实信号视图，进度保持同步。
 - **外设专属场景**：GPIO 输出级、串行字节、双线总线、ADC 量化阶梯、DMA 内存缓冲区，呈现不同外设的工作方式。
 - **同步时序观察**：场景、波形、当前步骤与状态读数联动；支持播放、暂停、单步、回退和时间轴定位。
 - **可操作的异常场景**：开漏输出悬空、I²C 地址无应答、DMA 固定地址覆盖，让易错概念更容易理解。
@@ -95,6 +96,7 @@ Embedded-Visualization/
 ├── app.js                 # 外设模型、目录及交互控制
 ├── scenes.js              # 各外设专属 SVG 场景
 ├── nrf.js                 # nRF24L01 全双工事务模型与场景
+├── spi-story.js           # 基于同一事务模型的分幕教学与双向位队列
 ├── tests/                 # 原理模型与 DOM 交互测试
 ├── docs/                  # 项目展示资源
 ├── .github/workflows/     # 自动验证

@@ -251,7 +251,7 @@ const NRF24Lab = (() => {
     );
     const svg = `<svg class="diagram-svg" viewBox="0 0 820 490" role="img" aria-label="${esc(f.text)}">${body}</svg>`;
     const stage = (i, label, sub) =>
-      `<button type="button" class="exchange-stage ${index === i && position > 0 ? "active" : ""}" data-seek="${i === 0 ? 17 : 33}" aria-label="跳转到${label}交换完成"><span>${label} · 8 个时钟</span><strong><i>MOSI → ${hex(t.tx[i])}</i><i>MISO ← ${total >= (i + 1) * 8 ? hex(t.rx[i]) : "等待接收"}</i></strong><small>${sub}</small></button>`;
+      `<button type="button" class="exchange-stage ${index === i && position > 0 ? "active" : ""}" data-seek="${i === 0 ? 16 : 32}" aria-label="跳转到${label}交换完成"><span>${label} · 8 个时钟</span><strong><i>MOSI → ${hex(t.tx[i])}</i><i>MISO ← ${total >= (i + 1) * 8 ? hex(t.rx[i]) : "等待接收"}</i></strong><small>${sub}</small></button>`;
     const received = total >= t.tx.length * 8;
     const readout = `<div class="exchange-ledger">${stage(0, t.nop ? "NOP" : "① 命令", t.nop ? "0xFF 作为首字节：NOP → STATUS" : `R_REGISTER | ${t.register}；返回的是 STATUS`)}${t.nop ? "" : stage(1, "② 数据", `${hex(t.tx[1])} 只提供时钟；返回的是 ${t.register}`)}<div class="exchange-result"><span>${t.nop ? "NOP 返回" : "Read_Reg 返回"}</span><strong>${received ? hex(t.rx.at(-1)) : "等待完整字节"}</strong><small>${t.nop ? "只需一次字节交换" : t.register === "STATUS" ? "两个字节都可能是同一个 STATUS，但含义不同。" : "STATUS 与 CONFIG 是不同的返回内容。"}</small></div><div class="status-flags">STATUS=${hex(t.status)} · RX_DR=${(t.status >> 6) & 1} · TX_DS=${(t.status >> 5) & 1} · MAX_RT=${(t.status >> 4) & 1} · RX_P_NO=${(t.status >> 1) & 7} · TX_FULL=${t.status & 1}<br>CE 保持低；CSN 控制 SPI 事务，CE 控制无线工作模式。两者不是同一根信号。</div></div>`;
     return {

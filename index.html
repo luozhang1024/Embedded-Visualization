@@ -11,6 +11,7 @@
     <title>芯知 · 嵌入式可视化实验室</title>
     <link rel="stylesheet" href="styles.css" />
     <script src="nrf.js" defer></script>
+    <script src="spi-story.js" defer></script>
     <script src="scenes.js" defer></script>
     <script src="app.js" defer></script>
   </head>
@@ -30,7 +31,7 @@
           target="_blank"
           rel="noopener noreferrer"
           >GitHub ↗</a
-        ><span class="version">v0.3.0 · Preview</span>
+        ><span class="version">v0.4.0 · Preview</span>
       </div>
     </aside>
     <main>
@@ -78,6 +79,39 @@
             <span class="legend"><i></i> 实时联动</span>
           </div>
           <p id="module-description" class="description"></p>
+          <div id="spi-learning" hidden>
+            <div class="learning-tabs" role="group" aria-label="SPI 展示层次">
+              <button id="view-story" aria-pressed="true">
+                ① 跟着故事理解
+              </button>
+              <button id="view-signals" aria-pressed="false">
+                ② 查看真实信号
+              </button>
+            </div>
+            <div id="story-stage"></div>
+            <div class="story-transport">
+              <button id="story-back">← 上一幕</button>
+              <button id="story-next" class="primary">演示下一幕 →</button>
+              <button id="story-pulse">敲一下时钟</button>
+              <button id="story-pause">暂停时钟</button>
+              <label
+                >演示速度
+                <select id="story-speed" aria-label="故事演示速度">
+                  <option value="1000">舒缓</option>
+                  <option value="550" selected>适中</option>
+                  <option value="200">快速</option>
+                </select></label
+              >
+            </div>
+            <p id="story-clock" role="status"></p>
+            <button
+              id="story-details"
+              aria-expanded="false"
+              aria-controls="signal-details"
+            >
+              展开同步时序 ↓
+            </button>
+          </div>
           <div class="scene-wrap">
             <div class="scene-topline">
               <span id="scene-name">电路视图</span
@@ -86,10 +120,12 @@
             <div id="diagram"></div>
             <div id="scene-readout" class="scene-readout"></div>
           </div>
-          <div class="wave-heading">
-            <span id="wave-title">时序观察</span><span id="time-note"></span>
+          <div id="signal-details">
+            <div class="wave-heading">
+              <span id="wave-title">时序观察</span><span id="time-note"></span>
+            </div>
+            <div id="waveform" class="waveform"></div>
           </div>
-          <div id="waveform" class="waveform"></div>
           <div class="timeline">
             <label for="timeline">时间轴</label
             ><input
