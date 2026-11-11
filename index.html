@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101d2d">
+  <title>芯知 · 嵌入式可视化实验室</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="./"><span class="brand-icon">芯</span><span>芯知 <small>EMBEDDED LAB</small></span></a>
+    <div class="nav-label">外设探索 / PERIPHERALS</div>
+    <nav id="modules" aria-label="选择外设"></nav>
+    <div class="sidebar-note"><span class="status-dot"></span> 让每一位，都看得见<p>从电平到协议，<br>探索芯片内部的工作方式。</p><span class="version">交互原理演示 · v0.1</span></div>
+  </aside>
+  <main>
+    <header><span>学习空间 <span class="muted">/</span> 外设实验室</span><span class="header-chip"><span class="status-dot"></span> STM32 通用原理</span></header>
+    <section class="intro"><div class="eyebrow">EXPLORE THE INVISIBLE</div><h1>把芯片里的世界，<span>变得直观。</span></h1><p>调一调参数，走一遍时序，让抽象的嵌入式知识在眼前发生。</p></section>
+    <section class="lab-heading"><div><span class="section-number" id="module-number">01</span><h2 id="module-title"></h2><span class="tag" id="module-tag"></span></div><span class="muted">交互实验 / LIVE LAB</span></section>
+    <div class="lab-grid">
+      <section class="panel visualization"><div class="panel-heading"><h3>信号实验台</h3><span class="legend"><i></i> 信号 / 数据流</span></div><p id="module-description" class="description"></p><div id="diagram"></div><div class="wave-heading"><span id="wave-title">逻辑电平</span><span id="time-note"></span></div><div id="waveform" class="waveform"></div><div class="transport"><div><button id="play" class="primary">▶ 播放演示</button><button id="step">单步 →</button><button id="reset" aria-label="重置演示">↺ 重置</button></div><label>演示速度 <select id="speed"><option value="1000">慢速</option><option value="550" selected>正常</option><option value="200">快速</option></select></label></div><div class="step-status" aria-live="polite"><span id="step-count"></span><span id="step-text"></span></div></section>
+      <aside class="panel parameters"><div class="panel-heading"><h3>实验参数</h3><span class="muted">CONFIG</span></div><div id="controls"></div><div class="result"><span id="result-label"></span><strong id="result-value"></strong><p id="result-detail"></p></div><p class="simulation-note">波形按教学时间缩放；播放速度不代表硬件的实际运行速度。</p></aside>
+    </div>
+    <section class="knowledge"><div class="panel concept"><div class="eyebrow">UNDER THE HOOD</div><h3>发生了什么？</h3><p id="explanation"></p><div class="takeaway" id="takeaway"></div></div><div class="panel code-panel"><div class="panel-heading"><h3>关联到代码</h3><span class="tag">STM32 HAL · 示意</span></div><pre><code id="code"></code></pre><p>需先完成对应外设、引脚与时钟初始化；具体配置以芯片参考手册为准。</p></div></section>
+    <footer>芯知 / EMBEDDED VISUALIZATION <span>理解原理，再走进真实硬件。</span></footer>
+  </main>
+</body>
+</html>
